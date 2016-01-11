@@ -254,17 +254,38 @@ function addDebuggerControlsPane(panes){
 		"</div>";
 }
 
+function title_key_down(elem, e){
+	if(e.which==13){ // Enter key.
+		refreshPanes(panes);
+	}
+}
+
+function makeid()
+{
+	var text = "";
+	var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	for( var i=0; i < 8; i++ )
+	    text += possible.charAt(Math.floor(Math.random() * possible.length));
+	return text;
+}
 function addCustomPane(panes){
 	var comm=prompt("Please input command:","drr");
 	if(comm!=null){
-		var title=prompt("Please input title for the window:","Registers");
-		if(title!=null){
-			panes.push({
-				pane:addNewPane(title, {x:50, y:50, w:20, h:30}),
-				cmd:comm
-			})
-			refreshPane(panes[panes.length-1]);
-		}
+		var id=makeid();
+		var title="<input type='text' value='"+comm+
+			"' class='titleTextBox' onclick='focus();value=value;'"+
+			" onkeydown='title_key_down(this, event)' id='"+id+"'>";
+		var pane=addNewPane(title, {x:50, y:50, w:20, h:30});
+		panes.push({
+			id: id,
+			pane:pane,
+			cmd: function(){
+				r2.cmd(document.getElementById(id).value, function(res){
+					pane.content.innerHTML="<pre>"+res+"</pre>";
+				});
+			}
+		})
+		refreshPane(panes[panes.length-1]);
 	}
 }
 

@@ -33,7 +33,6 @@ body{
 	height:23px;
 	background-color: rgba(200,0,0,0.8);
 	right: 0px;
-	position: absolute;
 	justify-content:center;
 	align-items:center;
 	font-family: Arial, sans-serif;
@@ -43,6 +42,17 @@ body{
 
 .pane-title{
 	display:flex;
+	flex-direction: row;
+	flex-grow:1;
+	align-items:center;
+}
+.titleTextBox{
+	display:flex;
+	flex-grow:0.9;
+	height:80%;
+	background-color: rgba(25, 36, 100, 0.7);
+	border: 1px solid #000000;
+	color: #ffffff;
 }
 .console{
 	display:flex;
