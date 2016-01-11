@@ -10,6 +10,7 @@ function refreshPane(pane){
 }
 
 function refreshPanes(panes){
+	r2.cmd(automatic_commands, function(){});
 	for(var i=0;i<panes.length;i++){
 		if(!document.contains(panes[i].pane.content)){
 			panes.splice(i,1);
@@ -284,6 +285,7 @@ function resetPanes(panes){
 	refreshPanes(panes);
 }
 
+var automatic_commands=".dr*";
 r2.cmd("e scr.html=true;e scr.color=true", function(){});
 var panes=[]; // Panes, that have to refresh whenever debugger steps.
 resetPanes(panes);
