@@ -370,7 +370,7 @@ var makeDRS = function(pane, handle, options, title, percentageBounds){
 		redraw = false;
 
 		// style cursor
-		var db = document.documentElement || document.body
+		var db = document.body;
 		if (onRightEdge && onBottomEdge || onLeftEdge && onTopEdge) {
 			db.style.cursor = 'nwse-resize';
 		} else if (onRightEdge && onTopEdge || onBottomEdge && onLeftEdge) {
