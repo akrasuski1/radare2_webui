@@ -1,6 +1,24 @@
+function ask(c, cb) {
+	var x = new XMLHttpRequest ();
+	x.open ("GET", "/cmd/"+encodeURI(c), false);
+	x.setRequestHeader ('Accept', 'text/plain');
+	x.setRequestHeader ('Accept', 'text/html');
+	x.setRequestHeader ("Content-Type", "application/x-ww-form-urlencoded; charset=UTF-8");
+	x.onreadystatechange = function(y) {
+		if (x.status == 200) {
+			if (cb) {
+				cb (x.responseText);
+			}
+		} else {
+			console.error ("ajax " + x.status)
+		}
+	}
+	x.send ("");
+}
+
 function refreshPane(pane){
 	if(typeof(pane.cmd)=="string"){
-		r2.cmd(pane.cmd, function(res){
+		ask(pane.cmd, function(res){
 			pane.pane.content.innerHTML="<pre>"+res+"</pre>";
 		})
 	}
@@ -10,7 +28,7 @@ function refreshPane(pane){
 }
 
 function refreshPanes(panes){
-	r2.cmd(automatic_commands, function(){});
+	ask(automatic_commands, function(){});
 	for(var i=0;i<panes.length;i++){
 		if(!document.contains(panes[i].pane.content)){
 			panes.splice(i,1);
@@ -19,7 +37,7 @@ function refreshPanes(panes){
 		}
 		refreshPane(panes[i]);
 	}
-	r2.cmd(automatic_commands, function(){});
+	ask(automatic_commands, function(){});
 }
 
 function txtSizeAdd(x){
@@ -44,7 +62,7 @@ function key_down(txt, e){
 		history_index=history_of_commands.length-1;
 		var resultPre=document.getElementById("consoletext");
 		var resultDiv=document.getElementById("consoletextdiv");
-		r2.cmd(txt.value,function(res){
+		ask(txt.value,function(res){
 			resultPre.innerHTML=resultPre.innerHTML+"\n> "+txt.value+"\n\n"+res;
 		})
 		txt.value="";
@@ -75,7 +93,7 @@ function key_down(txt, e){
 
 function addBgInDump(str, num, id){
 	var leftMargin=8;
-	r2.cmd("e asm.lineswidth", function(res){
+	ask("e asm.lineswidth", function(res){
 		leftMargin=parseInt(res, 10);
 	});
 	var lines=str.split("\n");
@@ -100,14 +118,14 @@ function addBgInDump(str, num, id){
 }
 
 function toggleBreakpoint(num){
-	r2.cmd("dbs "+num, function(res){
+	ask("dbs "+num, function(res){
 		refreshPanes(panes);
 	});
 }
 
 function addBreakpointLinks(str){
 	var leftMargin=8;
-	r2.cmd("e asm.lineswidth", function(res){
+	ask("e asm.lineswidth", function(res){
 		leftMargin=parseInt(res, 10);
 	});
 	var lines=str.split("\n");
@@ -129,7 +147,7 @@ function addBreakpointLinks(str){
 function getReg(reg){
 	reg=reg.replace( /^\s+|\s+$/g, '' ); // Strip whitespace.
 	var num=0;
-	r2.cmd("drj", function(res){
+	ask("drj", function(res){
 		num=JSON.parse(res)[reg];
 	});
 	return num;
@@ -138,9 +156,9 @@ function getReg(reg){
 var disas_last_ip_place=-1;
 function addDisassemblyPane(panes){
 	panes.push({
-		pane:addNewPane("Disassembly", {x:25, y:0, w:50, h:100}),
+		pane:addNewPane("Disassembly", {x:30, y:0, w:40, h:100}),
 		cmd:
-		function(pane){r2.cmd("i", function(res){
+		function(pane){ask("i", function(res){
 			var spl=res.split("\n");
 			var binName="";
 			for(i=0;i<spl.length;i++){
@@ -150,7 +168,7 @@ function addDisassemblyPane(panes){
 					break;
 				}
 			}
-			r2.cmd("! objdump -h "+binName, function(res){
+			ask("! objdump -h "+binName, function(res){
 				var spl=res.split("\n");
 				var disas="";
 				var started=false;
@@ -168,18 +186,27 @@ function addDisassemblyPane(panes){
 						// Executable section, let's disassemble.
 						var sz="0x"+spl2[2];
 						var of="0x"+spl2[3];
-						r2.cmd("pD "+sz+" @ "+of, function(res){
+						ask("pD "+sz+" @ "+of, function(res){
 							disas=disas+res;
 						})
 					}
 				}
-				r2.cmd("drn PC", function(ip){
+				ask("drn PC", function(ip){
 					var ipplace=getReg(ip);
 					pane.content.innerHTML="<pre>"+
 						addBreakpointLinks(
 						addBgInDump(disas,ipplace,"selectedIP")
 						)+"</pre>";
 					current_pos_span=document.getElementById("selectedIP");
+					if(current_pos_span==null){
+						ask("pD 100 @ "+(ipplace-50), function(dd){
+							pane.content.innerHTML="<pre>"+
+								addBreakpointLinks(
+								addBgInDump(dd,ipplace,"selectedIP"))+
+								"\n=================\n\n"
+								+pane.content.innerHTML.slice(5);
+						});
+					}
 					if(disas_last_ip_place==ipplace){}
 					else if(current_pos_span==null){
 						pane.content.scrollTop=0;
@@ -197,20 +224,20 @@ function addDisassemblyPane(panes){
 
 function addRegisterPane(panes){
 	panes.push({
-		pane:addNewPane("Registers", {x:0, y:0, w:25, h:40}),
+		pane:addNewPane("Registers", {x:0, y:0, w:30, h:40}),
 		cmd:"drr"
 	})
 }
 
 function addStackPane(panes){
 	panes.push({
-		pane:addNewPane("Stack",      {x:0, y:40, w:25, h:60}),
+		pane:addNewPane("Stack",      {x:0, y:40, w:30, h:60}),
 		cmd:
-		function(pane){r2.cmd("drn SP", function(sp){
+		function(pane){ask("drn SP", function(sp){
 			var sp_val=getReg(sp);
 
 			var start=sp_val-256;
-			r2.cmd("xr 512 @ "+start, function(stack){
+			ask("xr 512 @ "+start, function(stack){
 				pane.content.innerHTML="<pre>"+addBgInDump(stack, 
 					sp_val, "selectedSP")+"</pre>";
 			})
@@ -223,7 +250,7 @@ function addStackPane(panes){
 	})
 }
 function addConsolePane(panes){
-	pane=addNewPane("Console",      {x:75, y:0, w:25, h:85})
+	pane=addNewPane("Console",      {x:70, y:0, w:30, h:85})
 	pane.content.innerHTML=
 		"<div class=\"console\">\n"+
 		"<div class=\"consoletext\" id=\"consoletextdiv\">\n"+
@@ -245,14 +272,14 @@ function addConsolePane(panes){
 		"</div>";
 }
 function addDebuggerControlsPane(panes){
-	pane=addNewPane("Debugger controls",      {x:75, y:85, w:20, h:15})
+	pane=addNewPane("Debugger controls",      {x:70, y:85, w:25, h:15})
 	pane.content.innerHTML=
 		"<div class=\"buttons\">\n"+
-		"<a class=\"button_wrapper\" onclick=\"r2.cmd('ds'    ,function(r){refreshPanes(panes)})\"> Step into </a>\n"+
-		"<a class=\"button_wrapper\" onclick=\"r2.cmd('dso'   ,function(r){refreshPanes(panes)})\"> Step over </a>\n"+
-		"<a class=\"button_wrapper\" onclick=\"r2.cmd('dcr;ds',function(r){refreshPanes(panes)})\"> Step out  </a>\n"+
-		"<a class=\"button_wrapper\" onclick=\"r2.cmd('dc'    ,function(r){refreshPanes(panes)})\"> Continue  </a>\n"+
-		"<a class=\"button_wrapper\" onclick=\"r2.cmd('dcp'   ,function(r){refreshPanes(panes)})\"> Continue to code  </a>\n"+
+		"<a class=\"button_wrapper\" onclick=\"ask('ds'    ,function(r){refreshPanes(panes)})\"> Step into </a>\n"+
+		"<a class=\"button_wrapper\" onclick=\"ask('dso'   ,function(r){refreshPanes(panes)})\"> Step over </a>\n"+
+		"<a class=\"button_wrapper\" onclick=\"ask('dcr;ds',function(r){refreshPanes(panes)})\"> Step out  </a>\n"+
+		"<a class=\"button_wrapper\" onclick=\"ask('dc'    ,function(r){refreshPanes(panes)})\"> Continue  </a>\n"+
+		"<a class=\"button_wrapper\" onclick=\"ask('dcp'   ,function(r){refreshPanes(panes)})\"> Continue to code  </a>\n"+
 		"</div>";
 }
 
@@ -282,7 +309,7 @@ function addCustomPane(panes){
 			id: id,
 			pane:pane,
 			cmd: function(){
-				r2.cmd(document.getElementById(id).value, function(res){
+				ask(document.getElementById(id).value, function(res){
 					pane.content.innerHTML="<pre>"+res+"</pre>";
 				});
 			}
@@ -309,6 +336,6 @@ function resetPanes(panes){
 }
 
 var automatic_commands=".dr*";
-r2.cmd("e scr.html=true;e scr.color=true", function(){});
+ask("e scr.html=true;e scr.color=true", function(){});
 var panes=[]; // Panes, that have to refresh whenever debugger steps.
 resetPanes(panes);
