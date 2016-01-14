@@ -19,6 +19,7 @@ function refreshPanes(panes){
 		}
 		refreshPane(panes[i]);
 	}
+	r2.cmd(automatic_commands, function(){});
 }
 
 function txtSizeAdd(x){
@@ -134,6 +135,7 @@ function getReg(reg){
 	return num;
 }
 
+var disas_last_ip_place=-1;
 function addDisassemblyPane(panes){
 	panes.push({
 		pane:addNewPane("Disassembly", {x:25, y:0, w:50, h:100}),
@@ -171,21 +173,21 @@ function addDisassemblyPane(panes){
 						})
 					}
 				}
-				var ip="";
-				r2.cmd("drn PC", function(ipn){
-					ip=ipn;
+				r2.cmd("drn PC", function(ip){
+					var ipplace=getReg(ip);
 					pane.content.innerHTML="<pre>"+
 						addBreakpointLinks(
-						addBgInDump(disas,getReg(ip),"selectedIP")
+						addBgInDump(disas,ipplace,"selectedIP")
 						)+"</pre>";
-					console.log("Disas length:"+disas.length);
 					current_pos_span=document.getElementById("selectedIP");
-					if(current_pos_span==null){
+					if(disas_last_ip_place==ipplace){}
+					else if(current_pos_span==null){
 						pane.content.scrollTop=0;
 					}
 					else{
 						pane.content.scrollTop=current_pos_span.offsetTop-
 							pane.content.clientHeight/2;
+						disas_last_ip_place=ipplace;
 					}
 				});
 			});
