@@ -336,6 +336,6 @@ function resetPanes(panes){
 }
 
 var automatic_commands=".dr*";
-ask("e scr.html=true;e scr.color=true", function(){});
+ask("e scr.html=true;e scr.color=true;aa", function(){});
 var panes=[]; // Panes, that have to refresh whenever debugger steps.
 resetPanes(panes);
